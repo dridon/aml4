@@ -51,7 +51,7 @@ loans = []
 with open('nonfiction-no-accents.csv','rb') as infile:
     datareader = csv.reader(infile)
     for record in datareader:
-       if record[0] == "Mercier-Hochelaga-Maisonneuve": 
+       if record[0] == "Saint-Leonard": 
                 skipflag = False
             
                 callno = re.match('\D*([\d\.]*)',record[7]).group(1)
@@ -143,8 +143,8 @@ for m in range(10):
     clf = neighbors.KNeighborsClassifier(n_neighbors, weights='distance')
     clf.fit(x, y)
     
-    x = []
-    y = [] 
+    x=[]
+    y=[]
     for book in testSet:
         if book.author in authDict:
             circ = authDict[book.author]
