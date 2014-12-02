@@ -44,14 +44,15 @@ def circInfo(data):
 
 
 skipped = 0
+dupl = 0
 exc=[0,0,0]
 
-loans = []
+loans = {}
 
 with open('nonfiction-no-accents.csv','rb') as infile:
     datareader = csv.reader(infile)
     for record in datareader:
-       if record[0] == "Saint-Leonard": 
+       if record[0] == "Sans Arroundissement": 
                 skipflag = False
             
                 callno = re.match('\D*([\d\.]*)',record[7]).group(1)
@@ -95,27 +96,35 @@ with open('nonfiction-no-accents.csv','rb') as infile:
                 
                 if not skipflag:
                     book = Book()
-                    book.isbn = record[18]
-                    book.callno = callno
-                    book.circ = circ
-                    book.author = author
-                    book.title = title
-                    book.year = year
-                    book.pages = pages
-                    book.lang = lang
-                    loans.append(book)
+                    bookkey=(callno,author,year,lang)
+                    if bookkey in loans:
+                        loans[bookkey].circ = loans[bookkey].circ + circ
+                        dupl = dupl +1
+                        print bookkey[0],bookkey[1]
+                    else:
+                        book.callno = callno
+                        book.circ = circ
+                        book.author = author
+                        book.title = title
+                        book.year = year
+                        book.pages = pages
+                        book.lang = lang
+                        book.isbn = record[18]
+                        loans[bookkey]=book                  
                 else:
                     skipped = skipped + 1 
-                                   
-                
+
+
 infile.close()
 print skipped, exc 
+print 'duplicate books ',dupl 
+print 'unique books ', len(loans) 
 
 for m in range(10):
     i = 0
     trainSet = []
     testSet =[]
-    for book in loans:
+    for book in loans.values():
         i = i + 1
         if i % 10 != m:
             trainSet.append(book)
