@@ -41,7 +41,39 @@ def circInfo(data):
             authDict[d.author] = authCounts
             
     return authDict
+    
+def loadStops(filename):
+    """
+    stop words list source: http://www.textfixer.com/resources/common-english-words.txt
+                            http://www.ranks.nl/stopwords/french
+    """
+    stopwords = set()
 
+    with open(filename,'rb') as stopwordfile:
+        datareader = csv.reader(stopwordfile)
+        for w in datareader:
+            stopwords.update(w)
+            
+    stopwordfile.close()
+    
+    return stopwords
+    
+def reduce(theString,wordset):
+    words = theString.split(" ")
+    newString = []
+    for w in words:
+        w=w.lower()        
+        if w not in wordset:
+          w = re.sub(r"[^\w\s\']",'',w)
+          if re.search('[0-9]',w) == None and w != '':
+              newString.append(w)  
+    
+    return newString
+
+"""
+stopword list source: http://www.textfixer.com/resources/common-english-words.txt
+"""
+stopwords = [loadStops('eng-stopwords.csv'), loadStops('fr-stopwords.csv')]
 
 skipped = 0
 dupl = 0
@@ -68,8 +100,6 @@ with open('nonfiction-no-accents.csv','rb') as infile:
 
                 circ = int(record[3])
                 
-                title = record[8]
-
                 author = authorInfo(record[10])
                 if author == None:
                     exc[1]=exc[1]+1
@@ -93,14 +123,16 @@ with open('nonfiction-no-accents.csv','rb') as infile:
                     lang = 1
                 else:
                     skipflag = True 
-                
+           
+                title = reduce(record[8],stopwords[lang])
+                title = title + reduce(record[9],stopwords[lang])
+ 
                 if not skipflag:
                     book = Book()
                     bookkey=(callno,author,year,lang)
                     if bookkey in loans:
                         loans[bookkey].circ = loans[bookkey].circ + circ
                         dupl = dupl +1
-                        print bookkey[0],bookkey[1]
                     else:
                         book.callno = callno
                         book.circ = circ
