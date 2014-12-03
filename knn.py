@@ -72,6 +72,7 @@ def reduce(theString,wordset):
 
 
 skipped = 0
+dupl = 0
 exc=[0,0,0]
 
 """
@@ -80,7 +81,7 @@ stopword list source: http://www.textfixer.com/resources/common-english-words.tx
 
 stopwords = [loadStops('eng-stopwords.csv'), loadStops('fr-stopwords.csv')]
 
-loans = []
+loans = {}
 
 with open('nonfiction-no-accents.csv','rb') as infile:
     datareader = csv.reader(infile)
@@ -128,21 +129,25 @@ with open('nonfiction-no-accents.csv','rb') as infile:
              
             title = reduce(record[8],stopwords[lang])
             title = title + reduce(record[9],stopwords[lang])
-            
             if not skipflag:
                 book = Book()
-                book.isbn = record[18]
-                book.callno = callno
-                book.circ = circ
-                book.circThisYr = circThisYr
-                book.author = author
-                book.title = title
-                book.year = year
-                book.pages = pages
-                book.lang = lang
-                loans.append(book)
+                bookkey=(callno,author,year,lang)
+                if bookkey in loans:
+                    loans[bookkey].circ = loans[bookkey].circ + circ
+                    dupl = dupl +1
+                else:
+                    book.callno = callno
+                    book.circ = circ
+                    book.author = author
+                    book.title = title
+                    book.year = year
+                    book.pages = pages
+                    book.lang = lang
+                    book.isbn = record[18]
+                    loans[bookkey]=book                  
             else:
                 skipped = skipped + 1 
+
                                    
                 
 infile.close()
@@ -152,7 +157,7 @@ print skipped, exc
 i = 0
 trainSet = []
 testSet =[]
-for book in loans:
+for book in loans.values():
     if book.year < 2013:
         trainSet.append(book)
     else:
