@@ -5,8 +5,7 @@ Created on Sat Nov 22 14:52:22 2014
 @author: Fernando Sa-Pereira
 """
 import csv, re
-threshold = 3
-
+import numpy as np
 class Book: pass
 
 def authorInfo(fullname):
@@ -24,7 +23,7 @@ def authorInfo(fullname):
     authKey = (lastname,firstname)
     return authKey
 
-def circInfo(data):
+def circInfo(data, threshold):
     authDict = {}
     for d in data:
         if d.author[0] != '':
@@ -42,7 +41,7 @@ def circInfo(data):
             
     return authDict
     
-def titleInfo(data):
+def titleInfo(data, threshold):
     keywordsDict = {}
     for d in data:
         for word in d.title:
@@ -153,11 +152,11 @@ for library in ["Saint-Laurent","Plateau-Mont-Royal","Saint-Leonard",\
                         book = Book()
                         bookkey=(callno,author,year,lang)
                         if bookkey in loans:
-                            loans[bookkey].circ = loans[bookkey].circ + circ
+                            loans[bookkey].circ = loans[bookkey].circ + float(circ)/(2014-year + 1)
                             dupl = dupl +1
                         else:
                             book.callno = callno
-                            book.circ = circ
+                            book.circ = float(circ)/(2014-year + 1 )
                             book.author = author
                             book.title = title
                             book.year = year
@@ -170,10 +169,12 @@ for library in ["Saint-Laurent","Plateau-Mont-Royal","Saint-Leonard",\
     
     
     infile.close()
+    
+
     print skipped, exc 
     print 'duplicate books ',dupl
     print '# distinct books',len(loans)
-    
+
     for m in range(10):
         i = 0
         trainSet = []
@@ -184,9 +185,15 @@ for library in ["Saint-Laurent","Plateau-Mont-Royal","Saint-Leonard",\
                 trainSet.append(book)
             else:
                 testSet.append(book)
-        
-        authDict = circInfo(trainSet)
-        titleKeyWords = titleInfo(trainSet)
+
+        # threshold calculation
+        cvalues = np.array([ b.circ for b in trainSet ]) 
+        avg = np.average(cvalues)
+        median = np.median(cvalues)
+        print  "average is " + str(avg) + " and median is " + str(median) 
+        threshold = avg
+
+        authDict = circInfo(trainSet, threshold)
         x = []
         y = []
         for book in trainSet:
