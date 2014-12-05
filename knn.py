@@ -5,6 +5,9 @@ Created on Sat Nov 22 14:52:22 2014
 @author: Fernando Sa-Pereira
 """
 import csv, re
+from dewey_dict import DeweyCode 
+from wordvectors import Word2Vec
+ 
 threshold = 2
 
 class Book: pass
@@ -66,10 +69,12 @@ def reduce(theString,wordset):
         if w not in wordset:
           w = re.sub(r"[^\w\s\']",'',w)
           if re.search('[0-9]',w) == None and w != '':
-              newString.append(w)  
+              newString.append(w.strip())  
     
     return newString
 
+def get_vectors(word2vec, words): 
+  return [word2vec.get_vector(w, verbose = False) for w in words]
 
 skipped = 0
 dupl = 0
@@ -80,9 +85,16 @@ stopword list source: http://www.textfixer.com/resources/common-english-words.tx
 """
 
 stopwords = [loadStops('eng-stopwords.csv'), loadStops('fr-stopwords.csv')]
-
 loans = {}
 
+# initialize Dewey conversion
+deweyCode = DeweyCode("dewey_dictionary.csv")
+
+#initializes word vectors
+wv = Word2Vec("GoogleNews-vectors-negative300.bin")
+
+
+#initializes dewey dictionar
 with open('nonfiction-no-accents.csv','rb') as infile:
     datareader = csv.reader(infile)
     for record in datareader:
@@ -90,8 +102,10 @@ with open('nonfiction-no-accents.csv','rb') as infile:
             skipflag = False
         
             callno = re.match('\D*([\d\.]*)',record[7]).group(1)
+            deweyClasses = None   
             if callno != '':
                 try:
+                    deweyClasses = deweyCode.dewey_classes_extract(callno)
                     callno = float(callno)
                 except ValueError:
                     callno = 0
@@ -129,6 +143,11 @@ with open('nonfiction-no-accents.csv','rb') as infile:
              
             title = reduce(record[8],stopwords[lang])
             title = title + reduce(record[9],stopwords[lang])
+
+            # Convert word lists to word vectors
+            deweyWords = list({word for s in deweyClasses[1] for word in reduce(s, stopwords[lang]) if s is not None}) if deweyClasses is not None else deweyClasses
+            deweyVectors = get_vectors(wv, deweyWords) if deweyWords is not None else None
+            titleVectors = get_vectors(wv, title) if title is not None else None
             if not skipflag:
                 book = Book()
                 bookkey=(callno,author,year,lang)
@@ -137,9 +156,14 @@ with open('nonfiction-no-accents.csv','rb') as infile:
                     dupl = dupl +1
                 else:
                     book.callno = callno
+                    book.circThisYr = circThisYr
                     book.circ = circ
+                    book.deweyClasses = deweyClasses
+                    book.deweyWords = deweyWords
+                    book.deweyVectors = deweyVectors
                     book.author = author
                     book.title = title
+                    book.titleVectors = titleVectors
                     book.year = year
                     book.pages = pages
                     book.lang = lang
@@ -152,7 +176,6 @@ with open('nonfiction-no-accents.csv','rb') as infile:
                 
 infile.close()
 print skipped, exc 
-
 
 i = 0
 trainSet = []

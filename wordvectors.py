@@ -41,17 +41,17 @@ class Word2Vec:
       self.vocab[vocab[i]] = i 
     print "dictionary completed"
 
-  def get_vector(self, word): 
+  def get_vector(self, word, verbose = False): 
     """
       Returns the vector as a numpy array for the given word and None if it does not exist 
       in the library
     """
+    v = np.zeros(self.vectors_lib.vector_size())
     if word not in self.vocab: 
-      print "Warning: word " + word + " does not exist in vocabulary!"
-      return None 
+      if verbose: print "Warning: word " + word + " does not exist in vocabulary!" 
+      return v
 
     vec = self.vectors_lib.get_vector(self.vocab[word])
-    v = np.zeros(self.vectors_lib.vector_size())
     for i in range(self.vectors_lib.vector_size()): 
       v[i] = vec[i]
     return v
