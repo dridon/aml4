@@ -49,7 +49,7 @@ class Word2Vec:
     v = np.zeros(self.vectors_lib.vector_size())
     if word not in self.vocab: 
       if verbose: print "Warning: word " + word + " does not exist in vocabulary!" 
-      return v
+      return None
 
     vec = self.vectors_lib.get_vector(self.vocab[word])
     for i in range(self.vectors_lib.vector_size()): 

@@ -88,7 +88,7 @@ void initialize(char *fname){
     len = sqrt(len);
     for (a = 0; a < vectors.size; a++) vectors.vectors[a + b * vectors.size] /= len;
 
-    if(b%100000 == 0) printf("done %lld words ...\n", b);
+    if(b%500000 == 0) printf("done %lld words ...\n", b);
   }
   fclose(f);
   temp = (float *) malloc(sizeof(float)*vectors.size);
