@@ -1,4 +1,3 @@
-#from sklearn import neighbors
 from sklearn import neighbors
 import books as bks
 import csv
@@ -9,6 +8,8 @@ from sklearn import svm
 
 def circInfo(data, threshold):
     authDict = {}
+    maxPos = 0
+    maxNeg = 0
     for d in data:
         if d.author[0] != '':
             if d.author in authDict:
@@ -18,31 +19,48 @@ def circInfo(data, threshold):
                 
             if d.circ >= threshold:
                 authCounts[0] = authCounts[0]+1
+                if maxPos < authCounts[0]:
+                    maxPos = authCounts[0]
             else:
                 authCounts[1] = authCounts[1]+1
+                if maxNeg < authCounts[1]:
+                    maxNeg = authCounts[1]
 
             authDict[d.author] = authCounts
             
-    return authDict
-
-def calcThreshold(trainSet, form="median"):
+    return authDict,maxPos,maxNeg
+    
+def calcThreshold(trainSet, form="avg"):
     cvalues = np.array([ b.circ for b in trainSet ]) 
     avg = np.average(cvalues)
     median = np.median(cvalues)
+
     return avg if form == "avg" else median
     
-def splitData(loans, fold, wordvecs = None):
+def normalize(dataset,maxPos,maxNeg):
+    norm = []
+    maxPos = float(maxPos)
+    maxNeg = float(maxNeg)    
+    for d in dataset:
+        norm.append([d[0]/1000.0,d[1]/maxPos,d[2]/maxNeg,d[3]/2014.0])
+    return norm
+
+def avg(data):
+    return sum(data)/float(len(data))    
+    
+def splitData(loans, fold):
   trainSet = []
   validSet =[]
-  i = 0 
+  i = 0
+  
   for book in loans:
       i = i + 1
-      if i%10 != fold:
+      if i%numFolds != fold:
           trainSet.append(book)
       else:
           validSet.append(book)
-  threshold = calcThreshold(trainSet)
-  authDict = circInfo(trainSet, threshold)
+  threshold = calcThreshold(trainSet,"median")
+  authDict,maxPos,maxNeg = circInfo(trainSet, threshold)
 
   trainX = []
   trainY = []
@@ -53,7 +71,6 @@ def splitData(loans, fold, wordvecs = None):
           circ = [0,0]
       else:
           circ = authDict[book.author]
-
       if wordvecs is None: 
         trainX.append([book.callno,book.year])
       else: 
@@ -112,6 +129,7 @@ def splitDataTest(loans, limit, wordvecs = None):
           circ = authDict[book.author]
       else:
           circ = [0,0]
+
       if wordvecs is None: 
         validX.append([book.callno,book.year])
       else: 
@@ -164,87 +182,87 @@ def runClassifier(classifier, trainX = [], trainY= [], validX= [], validY= []):
   
 
 if __name__ == "__main__":
-  # libraries = [ l[0] for l in csv.reader(open("library_list2.csv", "r"))] 
-  # books = bks.Books() 
+  libraries = [ l[0] for l in csv.reader(open("library_list2.csv", "r"))] 
+  books = bks.Books() 
 
 
-  # for l in libraries: 
-  #   loans = (books.libraryLoans(l)).values()
-  #   limit = int(round(0.8*len(loans)))
-  #   train = loans[:limit]
-  #   test = loans[limit+1:]
-  #   threshold = None
-  #   authDict = None
+  for l in libraries: 
+    loans = (books.libraryLoans(l)).values()
+    limit = int(round(0.8*len(loans)))
+    train = loans[:limit]
+    test = loans[limit+1:]
+    threshold = None
+    authDict = None
 
-  #   wvs = [None, wordVecSums, first4]
+    wvs = [None, wordVecSums, first4]
 
-  #   for nn in range(10,70, 10):
-  #     for wv in wvs: 
-  #       success=[]
-  #       sens = []
-  #       spec = []
-  #       wvName = wv.__name__  if wv is not None else "None"
-  #       # 10 fold validation
-  #       for fold in range(4):
-  #         """
-  #           You can pass wordVecSums to get an extra feature set of 300 appended to it that sums all the word vectors OR 
-  #           You can pass first4 that gets the first 4 vectors, if there are less than 4 vectors, it duplicates the entries till there are 4, 
-  #           there will be a total of 1200 new features added as a result
-  #         """
-  #         trainX, trainY, validX, validY, threshold, authDict = splitData(train, fold, wordvecs = wv)
-  #         clfType = "kNN"
-  #         n_neighbors = nn  
-  #         classifier = neighbors.KNeighborsClassifier(n_neighbors)
-  #         success_rate, sensitivity,specificity,results = runClassifier(
-  #             classifier,
-  #             trainX = trainX, 
-  #             trainY = trainY, 
-  #             validX = validX, 
-  #             validY = validY) 
-  #         success.append(success_rate)
-  #         sens.append(sensitivity)
-  #         spec.append(specificity)
-  #         wvName = wv.__name__  if wv is not None else "None"          
+    for nn in range(10,70, 10):
+      for wv in wvs: 
+        success=[]
+        sens = []
+        spec = []
+        wvName = wv.__name__  if wv is not None else "None"
+        # 10 fold validation
+        for fold in range(4):
+          """
+            You can pass wordVecSums to get an extra feature set of 300 appended to it that sums all the word vectors OR 
+            You can pass first4 that gets the first 4 vectors, if there are less than 4 vectors, it duplicates the entries till there are 4, 
+            there will be a total of 1200 new features added as a result
+          """
+          trainX, trainY, validX, validY, threshold, authDict = splitData(train, fold, wordvecs = wv)
+          clfType = "kNN"
+          n_neighbors = nn  
+          classifier = neighbors.KNeighborsClassifier(n_neighbors)
+          success_rate, sensitivity,specificity,results = runClassifier(
+              classifier,
+              trainX = trainX, 
+              trainY = trainY, 
+              validX = validX, 
+              validY = validY) 
+          success.append(success_rate)
+          sens.append(sensitivity)
+          spec.append(specificity)
+          wvName = wv.__name__  if wv is not None else "None"          
         
-  #         with open(clfType+'_results/'+'results_'+l[:9] +"_"+str(n_neighbors)+ "_" + wvName  + "_" + str(fold)+  '.csv','w') as csvfile:
-  #           writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
-  #           for r in results:
-  #             writer.writerow(r)
-  #       print str(l) + "," + str(n_neighbors) +  "," + wvName + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
+          with open(clfType+'_results/'+'results_'+l[:9] +"_"+str(n_neighbors)+ "_" + wvName  + "_" + str(fold)+  '.csv','w') as csvfile:
+            writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
+            for r in results:
+              writer.writerow(r)
+        print str(l) + "," + str(n_neighbors) +  "," + wvName + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
 
-  #   nbs = [BernoulliNB, GaussianNB, MultinomialNB]
-  #   for nb in nbs:
-  #     wvs = [None, wordVecSums, first4] if nb.__name__ != "MultinomialNB" else [None]
-  #     for wv in wvs: 
-  #       # 10 fold validation
-  #       success=[]
-  #       sens = []
-  #       spec = []
-  #       wvName = wv.__name__  if wv is not None else "None"
-  #       for fold in range(4):
-  #         """
-  #           You can pass wordVecSums to get an extra feature set of 300 appended to it that sums all the word vectors OR 
-  #           You can pass first4 that gets the first 4 vectors, if there are less than 4 vectors, it duplicates the entries till there are 4, 
-  #           there will be a total of 1200 new features added as a result
-  #         """
-  #         trainX, trainY, validX, validY, threshold, authDict = splitData(train, fold, wordvecs = wv)
-  #         clfType = "NB"
-  #         classifier = nb()
-  #         success_rate, sensitivity,specificity,results = runClassifier(
-  #             classifier,
-  #             trainX = trainX, 
-  #             trainY = trainY, 
-  #             validX = validX, 
-  #             validY = validY) 
-  #         success.append(success_rate)
-  #         sens.append(sensitivity)
-  #         spec.append(specificity)
+    nbs = [BernoulliNB, GaussianNB, MultinomialNB]
+    for nb in nbs:
+      wvs = [None, wordVecSums, first4] if nb.__name__ != "MultinomialNB" else [None]
+      for wv in wvs: 
+        # 10 fold validation
+        success=[]
+        sens = []
+        spec = []
+        wvName = wv.__name__  if wv is not None else "None"
+        for fold in range(4):
+          """
+            You can pass wordVecSums to get an extra feature set of 300 appended to it that sums all the word vectors OR 
+            You can pass first4 that gets the first 4 vectors, if there are less than 4 vectors, it duplicates the entries till there are 4, 
+            there will be a total of 1200 new features added as a result
+          """
+          trainX, trainY, validX, validY, threshold, authDict = splitData(train, fold, wordvecs = wv)
+          clfType = "NB"
+          classifier = nb()
+          success_rate, sensitivity,specificity,results = runClassifier(
+              classifier,
+              trainX = trainX, 
+              trainY = trainY, 
+              validX = validX, 
+              validY = validY) 
+          success.append(success_rate)
+          sens.append(sensitivity)
+          spec.append(specificity)
         
-  #         with open(clfType+'_results/'+'results_'+l[:9] +"_"+ nb.__name__ + "_" + wvName  + "_" + str(fold)+  '.csv','w') as csvfile:
-  #           writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
-  #           for r in results:
-  #             writer.writerow(r)
-  #       print str(l) + "," + nb.__name__ +  "," + wvName + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
+          with open(clfType+'_results/'+'results_'+l[:9] +"_"+ nb.__name__ + "_" + wvName  + "_" + str(fold)+  '.csv','w') as csvfile:
+            writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
+            for r in results:
+              writer.writerow(r)
+        print str(l) + "," + nb.__name__ +  "," + wvName + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
 
   """
   Generating final test results
