@@ -1,11 +1,10 @@
 #from sklearn import neighbors
-from sklearn import neighbors
 import books as bks
 import csv
 import numpy as np
 import math
-from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
 from sklearn import svm
+from sklearn import preprocessing as pp
 
 def circInfo(data, threshold):
     authDict = {}
@@ -161,11 +160,11 @@ def runClassifier(classifier, trainX = [], trainY= [], validX= [], validY= []):
           
 
   return (float(success)/(success+failure), truePos/float(totPos), trueNeg/float(totNeg),results)
-  
 
 if __name__ == "__main__":
   # libraries = [ l[0] for l in csv.reader(open("library_list2.csv", "r"))] 
-  # books = bks.Books() 
+  # books = bks.Books(noWordVecs = True) 
+  # mms = pp.MinMaxScaler(copy = False)
 
 
   # for l in libraries: 
@@ -176,81 +175,53 @@ if __name__ == "__main__":
   #   threshold = None
   #   authDict = None
 
-  #   wvs = [None, wordVecSums, first4]
+  #   ks = ['linear', 'rbf', 'sigmoid', 'poly']
+  #   cs = [0.05, 0.5, 1.0, 2.5, 5.0]
+  #   wvs = [None]
+  #   for k in ks:
+  #     for c in cs:
+  #       for wv in wvs: 
+  #         wvName = wv.__name__  if wv is not None else "None"
+  #         success=[]
+  #         sens = []
+  #         spec = []
+  #         # 10 fold validation
+  #         for fold in range(4):
+  #           """
+  #             You can pass wordVecSums to get an extra feature set of 300 appended to it that sums all the word vectors OR 
+  #             You can pass first4 that gets the first 4 vectors, if there are less than 4 vectors, it duplicates the entries till there are 4, 
+  #             there will be a total of 1200 new features added as a result
+  #           """
+  #           trainX, trainY, validX, validY, threshold, authDict = splitData(train, fold, wordvecs = wv)
+  #           trainX = mms.fit_transform(trainX) 
+  #           validX = mms.fit_transform(validX)
 
-  #   for nn in range(10,70, 10):
-  #     for wv in wvs: 
-  #       success=[]
-  #       sens = []
-  #       spec = []
-  #       wvName = wv.__name__  if wv is not None else "None"
-  #       # 10 fold validation
-  #       for fold in range(4):
-  #         """
-  #           You can pass wordVecSums to get an extra feature set of 300 appended to it that sums all the word vectors OR 
-  #           You can pass first4 that gets the first 4 vectors, if there are less than 4 vectors, it duplicates the entries till there are 4, 
-  #           there will be a total of 1200 new features added as a result
-  #         """
-  #         trainX, trainY, validX, validY, threshold, authDict = splitData(train, fold, wordvecs = wv)
-  #         clfType = "kNN"
-  #         n_neighbors = nn  
-  #         classifier = neighbors.KNeighborsClassifier(n_neighbors)
-  #         success_rate, sensitivity,specificity,results = runClassifier(
-  #             classifier,
-  #             trainX = trainX, 
-  #             trainY = trainY, 
-  #             validX = validX, 
-  #             validY = validY) 
-  #         success.append(success_rate)
-  #         sens.append(sensitivity)
-  #         spec.append(specificity)
-  #         wvName = wv.__name__  if wv is not None else "None"          
-        
-  #         with open(clfType+'_results/'+'results_'+l[:9] +"_"+str(n_neighbors)+ "_" + wvName  + "_" + str(fold)+  '.csv','w') as csvfile:
-  #           writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
-  #           for r in results:
-  #             writer.writerow(r)
-  #       print str(l) + "," + str(n_neighbors) +  "," + wvName + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
+  #           clfType = "SVM"
+  #           classifier = svm.SVC(C = c, kernel = k, tol = 0.1)
+  #           success_rate, sensitivity,specificity,results = runClassifier(
+  #               classifier,
+  #               trainX = trainX, 
+  #               trainY = trainY, 
+  #               validX = validX, 
+  #               validY = validY) 
+  #           success.append(success_rate)
+  #           sens.append(sensitivity)
+  #           spec.append(specificity)
+          
+  #           with open(clfType+'_results/'+'results_'+l[:9] +"_"+ k + "_" + str(c) + "_" + str(fold)+  '.csv','w') as csvfile:
+  #             writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
+  #             for r in results:
+  #               writer.writerow(r)
+  #         print str(l) + "," + str(k) + "," + str(c) + "," + wvName + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
 
-  #   nbs = [BernoulliNB, GaussianNB, MultinomialNB]
-  #   for nb in nbs:
-  #     wvs = [None, wordVecSums, first4] if nb.__name__ != "MultinomialNB" else [None]
-  #     for wv in wvs: 
-  #       # 10 fold validation
-  #       success=[]
-  #       sens = []
-  #       spec = []
-  #       wvName = wv.__name__  if wv is not None else "None"
-  #       for fold in range(4):
-  #         """
-  #           You can pass wordVecSums to get an extra feature set of 300 appended to it that sums all the word vectors OR 
-  #           You can pass first4 that gets the first 4 vectors, if there are less than 4 vectors, it duplicates the entries till there are 4, 
-  #           there will be a total of 1200 new features added as a result
-  #         """
-  #         trainX, trainY, validX, validY, threshold, authDict = splitData(train, fold, wordvecs = wv)
-  #         clfType = "NB"
-  #         classifier = nb()
-  #         success_rate, sensitivity,specificity,results = runClassifier(
-  #             classifier,
-  #             trainX = trainX, 
-  #             trainY = trainY, 
-  #             validX = validX, 
-  #             validY = validY) 
-  #         success.append(success_rate)
-  #         sens.append(sensitivity)
-  #         spec.append(specificity)
-        
-  #         with open(clfType+'_results/'+'results_'+l[:9] +"_"+ nb.__name__ + "_" + wvName  + "_" + str(fold)+  '.csv','w') as csvfile:
-  #           writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
-  #           for r in results:
-  #             writer.writerow(r)
-  #       print str(l) + "," + nb.__name__ +  "," + wvName + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
 
   """
-  Generating final test results
+  Generate test results
   """
+
   libraries = [ l[0] for l in csv.reader(open("library_list.csv", "r"))] 
   books = bks.Books(noWordVecs = True) 
+  mms = pp.MinMaxScaler(copy = False)
 
 
   for l in libraries: 
@@ -263,9 +234,11 @@ if __name__ == "__main__":
     sens = []
     spec = []
     trainX, trainY, validX, validY, threshold, authDict = splitDataTest(loans, limit, wordvecs = None)
-    clfType = "kNN"
-    n_neighbors = 35 
-    classifier = neighbors.KNeighborsClassifier(n_neighbors)
+    trainX = mms.fit_transform(trainX) 
+    validX = mms.fit_transform(validX)
+
+    clfType = "SVM"
+    classifier = svm.SVC(C = 0.5, kernel = 'rbf', tol = 0.1)
     success_rate, sensitivity,specificity,results = runClassifier(
         classifier,
         trainX = trainX, 
@@ -275,32 +248,9 @@ if __name__ == "__main__":
     success.append(success_rate)
     sens.append(sensitivity)
     spec.append(specificity)
-
-    with open(clfType+'_results/' + l + '_final_kNN_results'+'.csv','w') as csvfile:
+          
+    with open(clfType+'_results/final_'+l+"_svm_results"+'.csv','w') as csvfile:
       writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
       for r in results:
         writer.writerow(r)
-    print str(l) + ",kNN,35" + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
-
-    success=[]
-    sens = []
-    spec = []
-    trainX, trainY, validX, validY, threshold, authDict = splitDataTest(loans,limit,wordvecs = None)
-
-    clfType = "NB"
-    classifier = GaussianNB()
-    success_rate, sensitivity,specificity,results = runClassifier(
-        classifier,
-        trainX = trainX, 
-        trainY = trainY, 
-        validX = validX, 
-        validY = validY) 
-    success.append(success_rate)
-    sens.append(sensitivity)
-    spec.append(specificity)
-    
-    with open(clfType+'_results/final_' + l + '_NB_results'+'.csv','w') as csvfile:
-        writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
-        for r in results:
-          writer.writerow(r)
-    print str(l) + ",GaussianNB," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
+    print str(l) + ","+ str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))

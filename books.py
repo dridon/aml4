@@ -5,6 +5,7 @@ Adaptation of Fernando's Code to make it re-usable
 import csv, re
 from dewey_dict import DeweyCode 
 from wordvectors import Word2Vec
+import numpy as np
  
 
 class Book: pass
@@ -53,6 +54,12 @@ def reduce(theString,wordset):
     return newString
 
 def get_vectors(word2vec, words): 
+  # size = word2vec.vector_size()
+  # vectors = None
+  # if words is None: 
+  #  vectors = [np.zeros(size) for i in range(4)]
+
+
   vectors = [] 
   for w in words:
     v = word2vec.get_vector(w, verbose = False)
@@ -65,22 +72,26 @@ class Books:
   wv = None
   dataf = ""
   cache = {}
+  noWordVecs = False
 
   def __init__(self, 
       dataFile = "nonfiction-no-accents.csv",
       englishStopWordsFile = 'eng-stopwords.csv', 
       frenchStopWordsFile = 'fr-stopwords.csv', 
       deweyDictFile = "dewey_dictionary.csv", 
-      wordvecFile="GoogleNews-vectors-negative300.bin"): 
+      wordvecFile="GoogleNews-vectors-negative300.bin",
+      noWordVecs = False): 
 
     self.dataf = dataFile
     self.stopwords = [loadStops(englishStopWordsFile), loadStops(frenchStopWordsFile)]
 
     # # initialize Dewey conversion
     self.deweyCode = DeweyCode(deweyDictFile)
+    self.noWordVecs = noWordVecs
 
-    # #initializes word vectors
-    self.wv = Word2Vec(wordvecFile)
+    if not noWordVecs: 
+      # #initializes word vectors
+      self.wv = Word2Vec(wordvecFile)
 
   def libraryLoans(self, library):
     if library in self.cache: return self.cache[library] 
@@ -89,6 +100,7 @@ class Books:
 
     skipped = 0
     dupl = 0
+    lessthan4 = 0
     loans = {}
     exc=[0,0,0]
     f = open(self.dataf, 'rb')
@@ -102,6 +114,7 @@ class Books:
             if callno != '':
                 try:
                     deweyClasses = self.deweyCode.dewey_classes_extract(callno)
+
                     callno = float(callno)
                 except ValueError:
                     callno = 0
@@ -109,6 +122,10 @@ class Books:
             else:
                 exc[0]=exc[0]+1
                 skipflag = True 
+
+            if deweyClasses is None: 
+              exc[0] = exc[0] + 1 
+              skipflag = True
 
             circ = int(record[3])
             
@@ -139,18 +156,24 @@ class Books:
             title = reduce(record[8],self.stopwords[lang])
             title = title + reduce(record[9],self.stopwords[lang])
 
-            # Convert word lists to word vectors
-            deweyWords = list({word for s in deweyClasses[1] for word in reduce(s, self.stopwords[lang]) if s is not None}) if deweyClasses is not None else deweyClasses
-            deweyVectors = get_vectors(self.wv, deweyWords) if deweyWords is not None else None
-            titleVectors = get_vectors(self.wv, title) if title is not None else None
-
             if not skipflag:
+                deweyWords = None 
+                deweyVectors = None 
+                titleVectors = None 
+                # Convert word lists to word vectors
+                if not self.noWordVecs: 
+                  deweyWords = list({word for s in deweyClasses[1] for word in reduce(s, self.stopwords[lang]) if s is not None}) if deweyClasses is not None else deweyClasses
+                  deweyVectors = get_vectors(self.wv, deweyWords)  if deweyWords is not None else None
+                  titleVectors = get_vectors(self.wv, title) if title is not None else None
+
+
                 book = Book()
                 bookkey=(callno,author,year,lang)
                 if bookkey in loans:
                     loans[bookkey].circ = loans[bookkey].circ + float(circ)/(2014-year + 1)
                     dupl = dupl +1
                 else:
+                    # if len(deweyVectors) < 4: lessthan4 += 1 
                     book.callno = callno
                     book.circ = float(circ)/(2014-year + 1 )
                     book.author = author
@@ -160,18 +183,30 @@ class Books:
                     book.lang = lang
                     book.isbn = record[18]
 
-                    book.deweyClasses = deweyClasses
-                    book.deweyWords = deweyWords
-                    book.deweyVectors = deweyVectors
-                    book.titleVectors = titleVectors
+                    if not self.noWordVecs:
+                      book.deweyClasses = deweyClasses
+                      book.deweyWords = deweyWords
+                      book.deweyVectors = deweyVectors
+                      book.titleVectors = titleVectors
+
                     loans[bookkey]=book                  
             else:
                 skipped = skipped + 1 
     # caching abandoned because it uses too much memory for all libraries
     # self.cache[library] = loans
+
+    print "skipped a total of " + str(skipped) + " records for library " + library
+    print "total unique count was " + str(len(loans))
+    # print "out of all records " + str(lessthan4) + " records had vectors less than 4 or " + str(float(lessthan4)*100/(len(loans))) + "%"
     f.close()
     return loans
 
+
+  def vector_size(self):
+    return self.wv.vector_size()
+
 if __name__ == "__main__":
+  libraries = [ l[0] for l in csv.reader(open("library_list.csv", "r"))] 
   books = Books()
-  slBooks = books.libraryLoans("Saint-Laurent") 
+  for lib in libraries: 
+    books.libraryLoans(lib) 

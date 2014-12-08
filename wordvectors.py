@@ -56,6 +56,9 @@ class Word2Vec:
       v[i] = vec[i]
     return v
 
+  def vector_size(self):
+    return self.vectors_lib.vector_size()
+
 if __name__ == "__main__": 
   wv = Word2Vec("GoogleNews-vectors-negative300.bin")
   print wv.get_vector("Paul")
