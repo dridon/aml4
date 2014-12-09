@@ -6,6 +6,7 @@ import math
 from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
 from sklearn import svm
 
+numFolds = 4
 def circInfo(data, threshold):
     authDict = {}
     maxPos = 0
@@ -48,7 +49,7 @@ def normalize(dataset,maxPos,maxNeg):
 def avg(data):
     return sum(data)/float(len(data))    
     
-def splitData(loans, fold):
+def splitData(loans, fold, wordvecs = None):
   trainSet = []
   validSet =[]
   i = 0

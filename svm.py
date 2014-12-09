@@ -6,6 +6,8 @@ import math
 from sklearn import svm
 from sklearn import preprocessing as pp
 
+numFolds = 4
+
 def circInfo(data, threshold):
     authDict = {}
     for d in data:
@@ -36,7 +38,7 @@ def splitData(loans, fold, wordvecs = None):
   i = 0 
   for book in loans:
       i = i + 1
-      if i%10 != fold:
+      if i%numFolds != fold:
           trainSet.append(book)
       else:
           validSet.append(book)
@@ -162,57 +164,57 @@ def runClassifier(classifier, trainX = [], trainY= [], validX= [], validY= []):
   return (float(success)/(success+failure), truePos/float(totPos), trueNeg/float(totNeg),results)
 
 if __name__ == "__main__":
-  # libraries = [ l[0] for l in csv.reader(open("library_list2.csv", "r"))] 
-  # books = bks.Books(noWordVecs = True) 
-  # mms = pp.MinMaxScaler(copy = False)
+  libraries = [ l[0] for l in csv.reader(open("library_list2.csv", "r"))] 
+  books = bks.Books(noWordVecs = True) 
+  mms = pp.MinMaxScaler(copy = False)
 
 
-  # for l in libraries: 
-  #   loans = (books.libraryLoans(l)).values()
-  #   limit = int(round(0.8*len(loans)))
-  #   train = loans[:limit]
-  #   test = loans[limit+1:]
-  #   threshold = None
-  #   authDict = None
+  for l in libraries: 
+    loans = (books.libraryLoans(l)).values()
+    limit = int(round(0.8*len(loans)))
+    train = loans[:limit]
+    test = loans[limit+1:]
+    threshold = None
+    authDict = None
 
-  #   ks = ['linear', 'rbf', 'sigmoid', 'poly']
-  #   cs = [0.05, 0.5, 1.0, 2.5, 5.0]
-  #   wvs = [None]
-  #   for k in ks:
-  #     for c in cs:
-  #       for wv in wvs: 
-  #         wvName = wv.__name__  if wv is not None else "None"
-  #         success=[]
-  #         sens = []
-  #         spec = []
-  #         # 10 fold validation
-  #         for fold in range(4):
-  #           """
-  #             You can pass wordVecSums to get an extra feature set of 300 appended to it that sums all the word vectors OR 
-  #             You can pass first4 that gets the first 4 vectors, if there are less than 4 vectors, it duplicates the entries till there are 4, 
-  #             there will be a total of 1200 new features added as a result
-  #           """
-  #           trainX, trainY, validX, validY, threshold, authDict = splitData(train, fold, wordvecs = wv)
-  #           trainX = mms.fit_transform(trainX) 
-  #           validX = mms.fit_transform(validX)
+    ks = ['linear', 'rbf', 'sigmoid', 'poly']
+    cs = [0.05, 0.5, 1.0, 2.5, 5.0]
+    wvs = [None]
+    for k in ks:
+      for c in cs:
+        for wv in wvs: 
+          wvName = wv.__name__  if wv is not None else "None"
+          success=[]
+          sens = []
+          spec = []
+          # 10 fold validation
+          for fold in range(4):
+            """
+              You can pass wordVecSums to get an extra feature set of 300 appended to it that sums all the word vectors OR 
+              You can pass first4 that gets the first 4 vectors, if there are less than 4 vectors, it duplicates the entries till there are 4, 
+              there will be a total of 1200 new features added as a result
+            """
+            trainX, trainY, validX, validY, threshold, authDict = splitData(train, fold, wordvecs = wv)
+            trainX = mms.fit_transform(trainX) 
+            validX = mms.fit_transform(validX)
 
-  #           clfType = "SVM"
-  #           classifier = svm.SVC(C = c, kernel = k, tol = 0.1)
-  #           success_rate, sensitivity,specificity,results = runClassifier(
-  #               classifier,
-  #               trainX = trainX, 
-  #               trainY = trainY, 
-  #               validX = validX, 
-  #               validY = validY) 
-  #           success.append(success_rate)
-  #           sens.append(sensitivity)
-  #           spec.append(specificity)
+            clfType = "SVM"
+            classifier = svm.SVC(C = c, kernel = k, tol = 0.1)
+            success_rate, sensitivity,specificity,results = runClassifier(
+                classifier,
+                trainX = trainX, 
+                trainY = trainY, 
+                validX = validX, 
+                validY = validY) 
+            success.append(success_rate)
+            sens.append(sensitivity)
+            spec.append(specificity)
           
-  #           with open(clfType+'_results/'+'results_'+l[:9] +"_"+ k + "_" + str(c) + "_" + str(fold)+  '.csv','w') as csvfile:
-  #             writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
-  #             for r in results:
-  #               writer.writerow(r)
-  #         print str(l) + "," + str(k) + "," + str(c) + "," + wvName + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
+            with open(clfType+'_results/'+'results_'+l[:9] +"_"+ k + "_" + str(c) + "_" + str(fold)+  '.csv','w') as csvfile:
+              writer = csv.writer(csvfile,delimiter = ',', quotechar='\"', quoting=csv.QUOTE_ALL)
+              for r in results:
+                writer.writerow(r)
+          print str(l) + "," + str(k) + "," + str(c) + "," + wvName + "," + str(round(np.average(success), 3)) + "," + str(round(np.average(sens), 3)) + "," + str(round(np.average(specificity), 3))
 
 
   """
