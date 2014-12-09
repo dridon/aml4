@@ -1,9 +1,9 @@
 #McGill COMP 598 Final Project: 
 
 ##Group Members: 
-Ali Emami 
-Faiz Khan 
-Fernando Sa-Pereira
+ * Ali Emami 
+ * Faiz Khan 
+ * Fernando Sa-Pereira
 
 ##Topic: 
 Book Recommender System for Montreal Libraries
